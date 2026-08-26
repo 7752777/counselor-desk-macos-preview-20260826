@@ -1,0 +1,25 @@
+name: Feature request
+description: 提议一个可验证的产品改进
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 说明当前工作流中具体、反复出现的困难。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 描述期望的功能、交互和边界。
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 数据与安全边界
+      description: 说明是否涉及学生敏感信息、迁移、备份或外部服务。

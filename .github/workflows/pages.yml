@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published release tag to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ inputs.release_tag }}
+          fetch-depth: 0
+      - name: Verify published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ inputs.release_tag }}" --repo "${{ github.repository }}" --json tagName,isDraft,isPrerelease \
+            --jq 'select(.tagName == "${{ inputs.release_tag }}" and .isDraft == false and .isPrerelease == false)'
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+      - name: Prepare public site artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/assets site/vendor site/src/core
+          cp index.html site/index.html
+          cp -R assets/. site/assets/
+          cp vendor/xlsx.full.min.js vendor/argon2-bundled.min.js vendor/jszip.min.js vendor/echarts.min.js site/vendor/
+          cp src/core/v4-runtime.js src/core/v8-migration.js src/core/v8-persistence-protocol.js src/core/v8-workspace-runtime.js src/core/v8-backup-codec.js src/core/cwb-ai.js src/core/cwb-ai-workflow.js src/core/cwb-employment.js src/core/cwb-employment-resources.js src/core/cwb-business.js src/core/cwb-export-policy.js src/core/cwb-v46.js src/core/v9-migration.js src/core/v10-migration.js src/core/cwb-v46-ui.js src/core/cwb-v47.js src/core/cwb-v47-ui.js src/core/import-worker.js site/src/core/
+          test -f site/assets/welcome-education-scene-v2.png
+          test -f site/src/core/v8-workspace-runtime.js
+          test -f site/src/core/cwb-v46-ui.js
+          test -f site/src/core/v9-migration.js
+          test -f site/src/core/v10-migration.js
+          test -f site/src/core/cwb-v47.js
+          test -f site/src/core/cwb-v47-ui.js
+          test -f site/vendor/xlsx.full.min.js
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

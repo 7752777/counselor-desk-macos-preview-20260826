@@ -1,0 +1,157 @@
+name: macOS Desktop Diagnostic (unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to build
+        required: true
+        default: codex/ai-upgrade
+        type: string
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: macos-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build v4.9.1 preview macOS universal package
+    runs-on: macos-14
+    timeout-minutes: 25
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Preview-only public configuration. No license, model, or signing
+      # secret is embedded in this workflow.
+      CWB_LICENSE_MODE: commercial
+      CWB_LICENSE_SERVICE_URL: https://license.windsky.store
+      CWB_LICENSE_PUBLIC_KEYS_JSON: '{"staging-primary":"MCowBQYDK2VwAyEAOwjMneN6DZpWg79Wu+v3LIKfzCUFZnO8CLYSgeJWUwQ="}'
+      CWB_UPDATE_FEED_URL: https://license.windsky.store/downloads/preview/
+      CWB_UPDATE_MANIFEST_URL: https://license.windsky.store/api/v1/updates/latest?channel=preview
+      CWB_PURCHASE_URL: https://license.windsky.store/customer
+      CWB_DOWNLOAD_CENTER_URL: https://license.windsky.store/downloads/v4.9.1/
+      CWB_AI_MANAGED_RELAY_URL: https://license.windsky.store/api/ai/chat
+      CWB_AI_MANAGED_BASE_URL: https://queqiao.online
+      CWB_AI_MANAGED_MODEL: gpt-5.5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate commercial preview source
+        run: |
+          pnpm run lint
+          pnpm run check:public
+          pnpm run check:secrets
+          node scripts/prepare-desktop-config.cjs
+          node --check desktop/main.cjs
+          node --check desktop/preload.cjs
+          node --check desktop/sqlite-store.cjs
+
+      - name: Build unsigned diagnostic DMG and ZIP
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm run desktop:build:mac 2>&1 | tee "${RUNNER_TEMP}/desktop-build.log"
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: counselor-desk-${{ github.sha }}-mac-build-log
+          retention-days: 3
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/desktop-build.log
+
+      - name: Summarize build failure
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo '## macOS build failure (last 120 log lines)'
+            echo '```text'
+            tail -n 120 "${RUNNER_TEMP}/desktop-build.log" || true
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+      - name: Publish build diagnostics
+        if: failure()
+        uses: actions/github-script@v7
+        env:
+          BUILD_LOG_PATH: ${{ runner.temp }}/desktop-build.log
+        with:
+          script: |
+            const fs = require('node:fs')
+            const logPath = process.env.BUILD_LOG_PATH
+            const log = fs.existsSync(logPath)
+              ? fs.readFileSync(logPath, 'utf8').slice(-6000)
+              : 'Build log was not created.'
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'macOS build diagnostics',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: 'failure',
+              output: {
+                title: 'macOS universal packaging failure',
+                summary: 'The builder log tail follows:\n\n' + log
+              }
+            })
+
+      - name: Verify package names and architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$(find output/desktop -maxdepth 1 -type f -name '*-mac-universal.dmg' | head -n 1)"
+          zip="$(find output/desktop -maxdepth 1 -type f -name '*-mac-universal.zip' | head -n 1)"
+          test -n "$dmg"
+          test -n "$zip"
+          test -f "$dmg"
+          test -f "$zip"
+          work="${RUNNER_TEMP}/cwb-universal"
+          rm -rf "$work"
+          mkdir -p "$work"
+          ditto -x -k "$zip" "$work"
+          app_path="$(find "$work" -maxdepth 2 -name '*.app' -type d | head -n 1)"
+          test -n "$app_path"
+          executable="$(plutil -extract CFBundleExecutable raw "$app_path/Contents/Info.plist")"
+          test -n "$executable"
+          binary="$app_path/Contents/MacOS/$executable"
+          test -f "$binary"
+          lipo -info "$binary" | tee "${RUNNER_TEMP}/cwb-lipo.txt"
+          grep -q 'x86_64' "${RUNNER_TEMP}/cwb-lipo.txt"
+          grep -q 'arm64' "${RUNNER_TEMP}/cwb-lipo.txt"
+          plutil -extract CFBundleIdentifier raw "$app_path/Contents/Info.plist" | grep -qx 'cn.counselordesk.workbench'
+
+      # This workflow is intentionally manual and diagnostic-only. The
+      # customer release path is .github/workflows/desktop-release.yml, which
+      # requires Developer ID signing and notarization credentials.
+      - name: Upload unsigned diagnostic artifacts
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: counselor-desk-${{ github.sha }}-mac-universal
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            output/desktop/*-mac-universal.dmg
+            output/desktop/*-mac-universal.zip

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>学工智伴 v4.9.0 · 购买与交付</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif; color: #172236; background: #f3f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    header { padding: 24px clamp(20px, 5vw, 72px) 20px; background: #fff; border-bottom: 1px solid #dfe6f0; }
+    header strong { font-size: 18px; }
+    header p { margin: 8px 0 0; color: #5e6b80; line-height: 1.6; }
+    main { width: min(1080px, calc(100% - 32px)); margin: 28px auto 56px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+    section, aside { background: #fff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(32, 55, 91, .06); }
+    section { padding: 24px; }
+    aside { padding: 20px; position: sticky; top: 20px; }
+    h1 { margin: 0 0 8px; font-size: 24px; line-height: 1.35; }
+    h2 { margin: 0 0 16px; font-size: 17px; }
+    .muted { color: #657287; line-height: 1.65; }
+    .grid { display: grid; gap: 14px; }
+    label { display: grid; gap: 6px; color: #46546a; font-size: 13px; }
+    input, select { width: 100%; min-height: 42px; border: 1px solid #cbd5e3; border-radius: 6px; padding: 9px 11px; font: inherit; color: inherit; background: #fff; }
+    input:focus, select:focus, button:focus-visible { outline: 3px solid rgba(37, 99, 235, .22); outline-offset: 2px; border-color: #2563eb; }
+    button { min-height: 40px; border: 1px solid #cbd5e3; border-radius: 6px; padding: 8px 14px; background: #fff; color: #24324a; font: inherit; cursor: pointer; }
+    button.primary { color: #fff; border-color: #2563eb; background: #2563eb; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .product { border: 1px solid #dbe3ef; border-radius: 7px; padding: 13px; cursor: pointer; }
+    .product.selected { border-color: #2563eb; background: #eff6ff; }
+    .product input { width: auto; min-height: auto; margin-right: 6px; }
+    .product-title { font-weight: 650; }
+    .product-price { margin-top: 7px; font-size: 18px; color: #1d4ed8; }
+    .status { min-height: 44px; margin-top: 16px; padding: 11px 13px; border-radius: 6px; background: #f5f7fb; color: #536177; line-height: 1.55; }
+    .status.good { color: #166534; background: #f0fdf4; }
+    .status.warn { color: #92400e; background: #fffbeb; }
+    .status.error { color: #991b1b; background: #fef2f2; }
+    .order { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5eaf2; }
+    .order.visible { display: block; }
+    .order-grid { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; font-size: 13px; }
+    .order-grid dt { color: #6b778c; }
+    .order-grid dd { margin: 0; word-break: break-word; }
+    .notice { margin-top: 18px; padding: 13px; border-left: 3px solid #2563eb; background: #f5f8ff; color: #4b5a71; line-height: 1.65; font-size: 13px; }
+    .qr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+    .qr-placeholder { min-height: 82px; display: grid; place-items: center; text-align: center; padding: 8px; border: 1px dashed #cbd5e3; border-radius: 6px; background: #f8fafc; color: #7a8699; font-size: 11px; line-height: 1.45; }
+    .qr-placeholder strong { display: block; color: #46546a; font-size: 12px; }
+    ul { margin: 0; padding-left: 19px; color: #5e6b80; line-height: 1.8; font-size: 13px; }
+    .tiny { color: #7a8699; font-size: 12px; line-height: 1.6; }
+    .steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 16px 0 22px; }
+    .step { min-width: 0; padding: 10px; border: 1px solid #dbe3ef; border-radius: 7px; background: #f8fafc; }
+    .step b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #eaf2ff; color: #2563eb; font-size: 12px; }
+    .step strong { display: block; margin-top: 6px; font-size: 12px; }
+    .step span { display: block; margin-top: 3px; color: #657287; font-size: 11px; line-height: 1.45; }
+    @media (max-width: 760px) { main { display: block; } aside { margin-top: 16px; position: static; } section { padding: 18px; } .products { grid-template-columns: 1fr; } .qr-grid { grid-template-columns: 1fr; } h1 { font-size: 21px; } }
+    @media (max-width: 760px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <header><strong>学工智伴 v4.9.0</strong><p>商业许可证购买与安全交付。订单访问令牌只保存在当前浏览器会话中，不会写入工作台业务数据。</p></header>
+  <main>
+    <section>
+      <h1>选择授权档位</h1>
+      <p class="muted">你可以先在工作台里用示例数据体验，再回来选择档位。AI 功能需要单独的 AI 增强授权；模型 API Key 和模型调用费用由用户自行承担。</p>
+      <div class="steps" aria-label="购买和使用流程"><div class="step"><b>1</b><strong>选择档位</strong><span>看清是否含 AI、是否永久更新</span></div><div class="step"><b>2</b><strong>完成支付</strong><span>支付平台确认到账</span></div><div class="step"><b>3</b><strong>取得许可证</strong><span>订单页或邮件获取</span></div><div class="step"><b>4</b><strong>激活</strong><span>桌面端首次联网激活</span></div><div class="step"><b>5</b><strong>开始工作</strong><span>备份、配对和更新</span></div></div>
+      <div class="notice"><strong>前瞻体验用户权益：</strong>此前参加前瞻体验计划的用户可免费获得普通永久更新版；升级 AI 增强版 20 元，升级永久 AI 增强版 30 元。维护者可通过受控的长期通用兑换码发放前瞻权益，公开购买仍按订单签发独立许可证。</div>
+      <div id="products" class="products" aria-live="polite"><div class="muted">正在读取服务端产品目录…</div></div>
+      <form id="order-form" class="grid">
+        <label>接收邮箱<input id="customer-email" type="email" autocomplete="email" required placeholder="用于接收订单通知和售后信息"></label>
+        <div class="actions"><button class="primary" type="submit" id="create-order">创建订单</button><button type="button" id="clear-order">清除当前订单</button></div>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite">这里先创建订单；订单显示“已完成”前不代表已经付款，许可证只有在支付平台或管理员确认到账并完成签发后才可下载。</div>
+      <div id="order" class="order" aria-live="polite">
+        <h2>当前订单</h2>
+        <dl class="order-grid"><dt>订单号</dt><dd id="order-id"></dd><dt>档位</dt><dd id="order-plan"></dd><dt>金额</dt><dd id="order-amount"></dd><dt>状态</dt><dd id="order-status"></dd><dt>取件凭证有效期</dt><dd id="order-access-expiry">创建订单后显示</dd></dl>
+        <div class="actions" style="margin-top:16px"><button type="button" id="pay-order" class="primary" hidden>去支付</button><button type="button" id="refresh-order">刷新订单状态</button><button class="primary" type="button" id="download-license" disabled>下载许可证文件</button></div>
+      <div class="notice">下载得到的 `.cwb-license` 文件可以在工作台的“激活许可证”窗口导入。不要把文件上传到公开网盘、代码仓库或业务备份。支付、签发和交付接口尚未配置时，页面会明确显示待处理状态，不会伪造支付成功。</div>
+      </div>
+    </section>
+    <aside><h2>交付说明</h2><ul><li>普通版 10 元；普通永久更新版 20 元。</li><li>AI 增强版 40 元；永久 AI 增强版 60 元。</li><li>正式订单对应独立签名许可证；前瞻通用兑换码只作为兑换凭据，不让多个工作区共用同一设备上限。</li><li>许可证按工作区授权，默认最多 3 台设备。</li><li>首次激活需要联网，之后可在 30 天离线宽限期内使用。</li><li>Electron 桌面端支持无卸载升级；网页/离线包需要手动获取新文件。</li><li>退款或撤销后，许可证不能继续下载或刷新。</li></ul><div class="notice"><strong>费用用途：</strong>主要用于服务器、证书、日常维护和持续迭代，不以高额盈利为目的。欢迎反馈问题；被采纳的建议经核验后免费赠送永久 AI 增强版。</div><h2 style="margin-top:20px">开发者与社群</h2><p class="muted">微信：<strong>Windsky0823</strong><br>购买或前瞻版资格核验后，由维护者通过微信拉入对应微信群；当前不展示群二维码。</p><p class="tiny" style="margin:16px 0 0">订单访问令牌相当于取件凭证。请勿把本页链接和令牌交给他人；关闭浏览器后需要重新输入订单取件凭证。</p></aside>
+  </main>
+  <noscript><p style="padding:20px">需要启用 JavaScript 才能创建订单和下载许可证。</p></noscript>
+  <script>
+    (() => {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const storageKey = 'cwb_customer_order_v1';
+      const state = { products:[], order:null, accessToken:'', requestedPlan:'' };
+      try { state.requestedPlan = String(new URLSearchParams(location.search).get('plan') || '').trim(); } catch (_) {}
+      const status = (message, kind) => { const node = $('status'); node.textContent = message; node.className = `status${kind ? ` ${kind}` : ''}`; };
+      const money = (minor, currency) => { const value = Number(minor || 0) / 100; const code = String(currency || 'CNY'); return code === 'CNY' ? `${value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')} 元` : `${value.toFixed(2)} ${code}`; };
+      const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[character]));
+      const createRequestId = () => {
+        const cryptoApi = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+        if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
+        return `${Date.now()}_${Math.random().toString(36).slice(2)}_${Math.random().toString(36).slice(2)}`;
+      };
+      const serviceBase = (() => {
+        const configured = new URLSearchParams(location.search).get('service');
+        const raw = configured || location.origin;
+        try {
+          const url = new URL(raw, location.href);
+          if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))) throw new Error('授权服务必须使用 HTTPS');
+          return url.origin;
+        } catch (error) { status(error.message || '授权服务地址无效', 'error'); return ''; }
+      })();
+      async function request(path, options) {
+        if (!serviceBase) throw new Error('授权服务地址无效');
+        const opts = options || {};
+        const response = await fetch(`${serviceBase}${path}`, { method:opts.method || 'GET', headers:Object.assign({ Accept:'application/json' }, opts.headers || {}), body:opts.body, credentials:'same-origin', cache:'no-store' });
+        if (!response.ok) { let body = null; try { body = await response.json(); } catch (_) {} const error = new Error(body && body.message || body && body.code || `请求失败（${response.status}）`); error.code = body && body.code || `HTTP_${response.status}`; throw error; }
+        return response;
+      }
+      function selectedPlan() { const node = document.querySelector('input[name="plan"]:checked'); return node ? node.value : ''; }
+      function renderProducts() {
+        const root = $('products');
+        if (!state.products.length) { root.innerHTML = '<div class="muted">当前没有可售产品，请稍后重试。</div>'; return; }
+        const selectedPlan = state.products.some(item => item.plan === state.requestedPlan) ? state.requestedPlan : String(state.products[0].plan || '');
+        root.innerHTML = state.products.map(item => { const selected = item.plan === selectedPlan; return `<label class="product${selected ? ' selected' : ''}"><div><input type="radio" name="plan" value="${escapeHtml(item.plan)}"${selected ? ' checked' : ''}> <span class="product-title">${escapeHtml(item.label || item.plan)}</span></div><div class="product-price">${escapeHtml(money(item.price_minor, item.currency))}</div><div class="tiny">${item.ai_enabled ? '包含当前主版本 AI 功能' : 'AI 功能需另购增强授权'} · ${item.perpetual_updates ? '永久核心更新' : '当前主版本更新'}</div></label>`; }).join('');
+        root.querySelectorAll('.product input').forEach(input => input.addEventListener('change', () => root.querySelectorAll('.product').forEach(item => item.classList.toggle('selected', item.querySelector('input').checked))));
+      }
+      function persist() { try { sessionStorage.setItem(storageKey, JSON.stringify({ order:state.order, accessToken:state.accessToken })); } catch (_) {} }
+      function restore() { try { const value = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); if (value && value.order && value.accessToken) { state.order = value.order; state.accessToken = value.accessToken; renderOrder(value.order); status('已恢复本次浏览器会话中的订单，可刷新状态或下载已签发许可证。'); } } catch (_) {} }
+      function renderOrder(order) {
+        if (!order) return;
+        $('order').classList.add('visible'); $('order-id').textContent = order.order_id || ''; $('order-plan').textContent = order.plan || ''; $('order-amount').textContent = money(order.amount_minor, order.currency); $('order-status').textContent = order.status || '';
+        $('order-access-expiry').textContent = order.access_token_expires_at ? new Date(order.access_token_expires_at).toLocaleString() : '服务端有效期已启用';
+        $('download-license').disabled = order.status !== 'fulfilled';
+        const paymentUrl = String(order.payment_url || '').trim(); let canPay = false; try { canPay = new URL(paymentUrl).protocol === 'https:'; } catch (_) {}
+        $('pay-order').hidden = !canPay || ['paid', 'fulfilled', 'refunded', 'cancelled'].includes(String(order.status || '').toLowerCase());
+      }
+      async function loadProducts() { try { const response = await request('/api/v1/products'); state.products = await response.json().then(value => Array.isArray(value) ? value : value.products || []); renderProducts(); } catch (error) { status(`产品目录读取失败：${error.message || error}`, 'error'); } }
+      async function refreshOrder() {
+        if (!state.order || !state.accessToken) { status('当前没有可查询的订单。', 'warn'); return; }
+        try { const response = await request(`/api/v1/orders/${encodeURIComponent(state.order.order_id)}`, { headers:{ 'x-order-access-token':state.accessToken } }); state.order = await response.json(); renderOrder(state.order); persist(); status(state.order.status === 'fulfilled' ? '许可证已签发，可以下载。' : '订单尚未完成签发，请稍后刷新。', state.order.status === 'fulfilled' ? 'good' : 'warn'); } catch (error) { status(`订单查询失败：${error.message || error}`, 'error'); }
+      }
+      $('order-form').addEventListener('submit', async event => {
+        event.preventDefault(); const button = $('create-order'); const plan = selectedPlan(); const email = $('customer-email').value.trim(); if (!plan || !email) return;
+        button.disabled = true; status('正在创建订单…');
+        try { const idempotency = `customer_${createRequestId()}`; const response = await request('/api/v1/orders', { method:'POST', headers:{ 'Content-Type':'application/json', 'Idempotency-Key':idempotency }, body:JSON.stringify({ plan, customer_email:email, idempotency_key:idempotency }) }); const value = await response.json(); state.order = value.order; state.accessToken = value.access_token; persist(); renderOrder(state.order); status(state.order.payment_url ? '订单已创建，请点击“去支付”。付款完成后返回本页刷新状态，签发后即可下载许可证。' : '订单已创建，但付款入口尚未配置。请联系维护者完成付款确认；支付完成后点击“刷新订单状态”。', 'warn'); } catch (error) { status(`订单创建失败：${error.message || error}`, 'error'); } finally { button.disabled = false; }
+      });
+      $('pay-order').addEventListener('click', () => { const value = state.order && String(state.order.payment_url || '').trim(); try { const url = new URL(value); if (url.protocol !== 'https:') throw new Error('付款地址必须使用 HTTPS'); const opened = window.open(url.toString(), '_blank', 'noopener,noreferrer'); if (!opened) status('浏览器阻止了付款页面，请允许打开新窗口。', 'warn'); } catch (error) { status(`付款入口无效：${error.message || error}`, 'error'); } });
+      $('refresh-order').addEventListener('click', refreshOrder);
+      $('download-license').addEventListener('click', async () => { if (!state.order || !state.accessToken) return; const button = $('download-license'); button.disabled = true; try { const response = await request(`/api/v1/orders/${encodeURIComponent(state.order.order_id)}/license`, { headers:{ 'x-order-access-token':state.accessToken } }); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `counselor-desk-${state.order.order_id}.cwb-license`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status('许可证文件已下载，请离线妥善保管。', 'good'); } catch (error) { status(`许可证下载失败：${error.message || error}`, 'error'); } finally { button.disabled = false; } });
+      $('clear-order').addEventListener('click', () => { state.order = null; state.accessToken = ''; try { sessionStorage.removeItem(storageKey); } catch (_) {} $('order').classList.remove('visible'); status('已清除当前浏览器会话中的订单凭证。'); });
+      loadProducts(); restore();
+    })();
+  </script>
+</body>
+</html>

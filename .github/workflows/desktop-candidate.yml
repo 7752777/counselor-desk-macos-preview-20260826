@@ -1,0 +1,84 @@
+name: Candidate Windows Desktop Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to build
+        required: true
+        default: codex/ai-upgrade
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: counselor-desk-candidate-windows-${{ inputs.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows NSIS candidate (x64 and ARM64)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+    steps:
+      - name: Checkout requested candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate candidate source
+        run: |
+          pnpm run lint
+          pnpm run check:public
+          pnpm run check:secrets
+          pnpm run test:release
+
+      - name: Build Windows NSIS packages
+        run: pnpm run desktop:build:win
+
+      - name: Verify architecture, persistence, and installer paths
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem -LiteralPath output/desktop -File -Filter 'counselor-desk-*-*.exe')
+          if ($packages.Count -lt 2) { throw 'Expected x64 and arm64 NSIS installers.' }
+          $x64 = $packages | Where-Object { $_.Name -match 'x64' } | Select-Object -First 1
+          $arm64 = $packages | Where-Object { $_.Name -match 'arm64' } | Select-Object -First 1
+          if (-not $x64 -or -not $arm64) { throw 'Both x64 and arm64 installers are required.' }
+          $env:CWB_DESKTOP_ARTIFACT_DIR = (Resolve-Path output/desktop).Path
+          $env:CWB_REQUIRE_ARTIFACTS = '1'
+          pnpm exec node tests/desktop-windows-architecture.js
+          pnpm exec node tests/desktop-packaged-smoke.js
+          pnpm exec node tests/desktop-installer-smoke.js
+          @($x64, $arm64) | ForEach-Object {
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash + ' *' + $_.Name
+          } | Set-Content output/desktop/Windows-SHA256.txt -Encoding utf8
+
+      - name: Upload candidate packages and evidence
+        uses: actions/upload-artifact@v5
+        with:
+          name: counselor-desk-windows-candidate-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            output/desktop/counselor-desk-*-x64.exe
+            output/desktop/counselor-desk-*-arm64.exe
+            output/desktop/Windows-SHA256.txt

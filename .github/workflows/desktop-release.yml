@@ -26,7 +26,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_tag || github.ref }}
           fetch-depth: 0
@@ -101,7 +101,7 @@ jobs:
       CWB_UPDATE_MANIFEST_URL: ${{ secrets.CWB_UPDATE_MANIFEST_URL }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ needs.validate.outputs.tag }}
       - uses: pnpm/action-setup@v5
@@ -170,7 +170,7 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ needs.validate.outputs.tag }}
       - uses: pnpm/action-setup@v5
@@ -259,7 +259,7 @@ jobs:
       CWB_LICENSE_PUBLIC_KEYS_JSON: ${{ secrets.CWB_LICENSE_PUBLIC_KEYS_JSON }}
       CWB_UPDATE_FEED_URL: ${{ secrets.CWB_UPDATE_FEED_URL }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ needs.validate.outputs.tag }}
       - uses: pnpm/action-setup@v5

@@ -97,7 +97,7 @@
     "build:forward-package": "node scripts/build-forward-package.js"
   },
   "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "^43.4.1",
     "electron-builder": "^26.0.0",
     "jsdom": "^26.1.0",
     "playwright-core": "1.57.0",

@@ -1,0 +1,24 @@
+{
+  "name": "counselor-desk-license-server",
+  "version": "0.2.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "description": "Standalone commercial license, order, delivery, and update service.",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "scripts": {
+    "start": "node bootstrap.cjs",
+    "start:staging": "node staging.cjs",
+    "start:contract": "node service.cjs",
+    "test": "node ../../tests/license-server-contract.js && node ../../tests/license-server-production-contract.js && node ../../tests/license-postgres-contract.js && node ../../tests/license-server-http-contract.js && node ../../tests/commercial-operations.js",
+    "schema:check": "node scripts/check-schema.cjs",
+    "admin:key": "node scripts/create-admin-key.cjs",
+    "redemption:generate": "node scripts/generate-redemption-codes.cjs",
+    "test:webhook": "node ../../tests/payment-webhook-verifier.js"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
+    "fastify": "^5.3.3",
+    "pg": "^8.16.3"
+  }
+}

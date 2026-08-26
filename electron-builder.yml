@@ -1,0 +1,76 @@
+appId: cn.counselordesk.workbench
+productName: 学工智伴
+executableName: counselor-desk
+artifactName: counselor-desk-${version}-${arch}.${ext}
+icon: assets/app-icon.svg
+directories:
+  output: output/desktop
+  buildResources: assets
+npmRebuild: false
+electronLanguages:
+  - zh-CN
+  - en-US
+files:
+  - desktop/**
+  - '!desktop/package.json'
+  - '!desktop/package-lock.json'
+  - '!desktop/electron-builder.yml'
+  - '!desktop/installer.nsh'
+  - '!desktop/README.md'
+  - index.html
+  - src/core/cwb-collections.js
+  - src/core/v4-runtime.js
+  - src/core/import-worker.js
+  - src/core/v8-migration.js
+  - src/core/v8-persistence-protocol.js
+  - src/core/v8-workspace-runtime.js
+  - src/core/v8-backup-codec.js
+  - src/core/cwb-ai.js
+  - src/core/cwb-ai-workflow.js
+  - src/core/cwb-employment.js
+  - src/core/cwb-employment-resources.js
+  - src/core/cwb-business.js
+  - src/core/cwb-export-policy.js
+  - src/core/cwb-v46.js
+  - src/core/v9-migration.js
+  - src/core/v10-migration.js
+  - src/core/v11-migration.js
+  - src/core/cwb-license.js
+  - src/core/cwb-update.js
+  - src/core/cwb-telemetry.js
+  - src/core/cwb-v46-ui.js
+  - src/core/cwb-v47.js
+  - src/core/cwb-v47-ui.js
+  - src/core/cwb-v48.js
+  - src/core/cwb-v48-ui.js
+  - assets/welcome-education-scene-v2.png
+  - assets/welcome-morning.png
+  - vendor/xlsx.full.min.js
+  - vendor/argon2-bundled.min.js
+  - vendor/jszip.min.js
+  - vendor/echarts.min.js
+  - THIRD-PARTY-NOTICES.md
+win:
+  icon: assets/app-icon.ico
+  target:
+    - nsis
+  requestedExecutionLevel: asInvoker
+nsis:
+  include: desktop/installer.nsh
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 学工智伴
+  runAfterFinish: true
+mac:
+  category: public.app-category.education
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+  artifactName: counselor-desk-${version}-mac-${arch}.${ext}

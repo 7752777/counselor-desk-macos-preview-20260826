@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>辅导员工作台授权管理</title>
+  <style>
+    :root { color-scheme: light; font: 15px/1.6 system-ui,-apple-system,"Microsoft YaHei",sans-serif; background:#f4f7fb; color:#17243a; }
+    body { max-width:960px; margin:0 auto; padding:32px 20px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; }
+    h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 12px; }
+    section { background:#fff; border:1px solid #dfe6f0; border-radius:8px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px #183b6b0a; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; } label { display:grid; gap:4px; color:#516178; font-size:13px; }
+    input,select,button { min-height:38px; border:1px solid #cbd6e5; border-radius:6px; padding:0 10px; font:inherit; } button { cursor:pointer; background:#1667c9; border-color:#1667c9; color:#fff; } button.secondary { background:#fff; color:#1667c9; }
+    pre { overflow:auto; background:#f7f9fc; padding:12px; border-radius:6px; } .status { color:#516178; }
+    @media (max-width:640px) { body { padding:20px 14px; } .grid { grid-template-columns:1fr; } header { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <header><div><h1>授权管理</h1><div class="status">仅处理订单、许可证、设备和审计，不接触学生数据。</div></div><button class="secondary" id="loadProducts">刷新产品目录</button></header>
+  <section><h2>管理员凭据</h2><div class="grid"><label>服务地址<input id="base" value="http://127.0.0.1:8787"></label><label>管理员 API Key<input id="adminKey" type="password" autocomplete="off"></label></div></section>
+  <section><h2>手动订单与发码</h2><form id="issueForm"><div class="grid"><label>产品档位<select id="plan"><option value="standard">普通版</option><option value="standard_perpetual">普通永久更新版</option><option value="ai">AI 增强版</option><option value="ai_perpetual">永久 AI 增强版</option></select></label><label>客户邮箱<input id="email" type="email" required></label></div><p><button>创建订单并发码</button></p></form></section>
+  <section><h2>返回结果</h2><pre id="output">等待操作</pre></section>
+  <script>
+    const $ = id => document.getElementById(id); const output = value => { $('output').textContent = JSON.stringify(value,null,2); };
+    async function call(path, options) { const response = await fetch($('base').value.replace(/\/$/, '') + path, Object.assign({ headers:{ 'content-type':'application/json', 'x-admin-api-key':$('adminKey').value } }, options || {})); const data = await response.json(); if (!response.ok) throw new Error(data.code || 'REQUEST_FAILED'); return data; }
+    $('loadProducts').onclick = async () => { try { output(await call('/api/v1/products',{ headers:{ 'content-type':'application/json' } })); } catch (error) { output({ error:error.message }); } };
+    $('issueForm').onsubmit = async event => { event.preventDefault(); try { output(await call('/api/v1/admin/licenses/manual',{ method:'POST', body:JSON.stringify({ plan:$('plan').value, customer_email:$('email').value }) })); } catch (error) { output({ error:error.message }); } };
+  </script>
+</body>
+</html>

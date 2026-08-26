@@ -1,0 +1,30 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { JSDOM } = require('jsdom');
+
+(async () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const dom = new JSDOM(html, { runScripts:'dangerously', url:'https://c.local/', pretendToBeVisual:true });
+  const { window } = dom;
+  await new Promise(resolve => setTimeout(resolve, 700));
+  window.CWB.go('orgs');
+  const newButton = window.document.querySelector('[data-act="v4-new"][data-kind="orgs"]');
+  if (!newButton) throw new Error('班团组织新增入口缺失');
+  newButton.click();
+  const position = window.document.querySelector('[data-k="position"]');
+  const cls = window.document.querySelector('[data-k="class_name"]');
+  const student = window.document.querySelector('[data-k="student_number"]');
+  if (!position || !cls || !student) throw new Error('班团职务关联表单缺失');
+  position.value = '班长';
+  cls.value = window.CWB.db.students[0].class_name;
+  cls.dispatchEvent(new window.Event('change', { bubbles:true }));
+  student.value = window.CWB.db.students.find(item => item.class_name === cls.value).student_number;
+  window.document.querySelector('[data-ok]').click();
+  if (window.CWB.db.orgs.length !== 1 || window.CWB.db.orgs[0].position !== '班长') throw new Error('班团职务未保存');
+  window.CWB.go('students');
+  const assigned = window.CWB.db.students.find(item => item.student_number === student.value);
+  window.document.querySelector(`[data-act="student-view"][data-id="${assigned.id}"]`).click();
+  if (!window.document.querySelector('.modal').textContent.includes('班团职务')) throw new Error('学生档案未反向展示班团职务');
+  dom.window.close();
+  console.log('PASS v4-orgs');
+})().catch(error => { console.error(error.stack || error.message); process.exit(1); });

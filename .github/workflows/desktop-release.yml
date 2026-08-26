@@ -1,0 +1,327 @@
+name: Validate and prepare release
+
+on:
+  push:
+    tags: ['v4.4.*', 'v4.5.*', 'v4.6.*', 'v4.7.*', 'v4.8.*', 'v4.9.*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing version tag to validate and package
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: counselor-desk-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install license service dependencies
+        run: pnpm --dir services/license-server install --frozen-lockfile --ignore-workspace
+      - name: Verify version tag and source surface
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          tag="${{ inputs.release_tag || github.ref_name }}"
+          test "$tag" = "v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          pnpm run lint
+          pnpm run check:public
+          pnpm run check:secrets
+      - name: Run complete release test gate
+        run: xvfb-run -a pnpm test
+      - name: Run commercial release contract gate
+        run: pnpm test:commercial
+      - name: Verify release configuration
+        run: pnpm run test:release
+      - name: Create draft release for verified direct uploads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ steps.version.outputs.tag }}'
+          version='${{ steps.version.outputs.version }}'
+          awk -v version="$version" '
+            $0 ~ ("^## \\[" version "\\]") || $0 ~ ("v" version) { found=1 }
+            found && $0 ~ /^## \[/ && $0 !~ ("^## \\[" version "\\]") && $0 !~ ("v" version) { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+          printf '\n## Release boundaries\n\n- Windows packages require Authenticode signing and macOS packages require Developer ID signing plus notarization.\n- The workflow refuses to build a commercial release when signing credentials are absent.\n- SHA-256 manifests accompany every distributable package.\n' >> release-notes.md
+          existing_release="$(gh release view "$tag" --json isDraft,isPrerelease --jq '[.isDraft,.isPrerelease] | @tsv' 2>/dev/null || true)"
+          if [ -n "$existing_release" ]; then
+            IFS=$'\t' read -r is_draft is_prerelease <<< "$existing_release"
+            if [ "$is_draft" != "true" ] || [ "$is_prerelease" = "true" ]; then
+              echo "Refusing to replace an existing published or prerelease Release: $tag"
+              exit 1
+            fi
+            gh release delete "$tag" --yes
+          fi
+          gh release create "$tag" --draft --verify-tag --title "一站式辅导员工作台 v$version" --notes-file release-notes.md
+
+  windows:
+    name: Windows NSIS (x64 and ARM64)
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      CWB_LICENSE_MODE: commercial
+      CWB_LICENSE_SERVICE_URL: ${{ secrets.CWB_LICENSE_SERVICE_URL }}
+      CWB_LICENSE_PUBLIC_KEYS_JSON: ${{ secrets.CWB_LICENSE_PUBLIC_KEYS_JSON }}
+      CWB_UPDATE_FEED_URL: ${{ secrets.CWB_UPDATE_FEED_URL }}
+      CWB_UPDATE_MANIFEST_URL: ${{ secrets.CWB_UPDATE_MANIFEST_URL }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install license service dependencies
+        run: pnpm --dir services/license-server install --frozen-lockfile --ignore-workspace
+      - name: Require commercial public configuration
+        shell: pwsh
+        run: |
+          if (-not $env:CWB_LICENSE_SERVICE_URL -or -not $env:CWB_LICENSE_PUBLIC_KEYS_JSON -or -not $env:CWB_UPDATE_FEED_URL -or -not $env:CWB_UPDATE_MANIFEST_URL) { throw 'Commercial Windows build requires license service, update feed, and signed update manifest URLs plus public keys.' }
+      - name: Require Windows signing credentials
+        shell: pwsh
+        run: |
+          if (-not $env:CSC_LINK -or -not $env:CSC_KEY_PASSWORD) { throw 'Commercial Windows release requires WINDOWS_CSC_LINK and WINDOWS_CSC_KEY_PASSWORD.' }
+      - name: Build NSIS installers
+        run: pnpm run desktop:build:win
+      - name: Verify Windows packages
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem -LiteralPath output/desktop -File -Filter 'counselor-desk-*-*.exe'
+          if ($packages.Count -lt 2) { throw 'Expected x64 and arm64 NSIS installers.' }
+          $x64 = $packages | Where-Object { $_.Name -match 'x64' } | Select-Object -First 1
+          $arm64 = $packages | Where-Object { $_.Name -match 'arm64' } | Select-Object -First 1
+          if (-not $x64 -or -not $arm64) { throw 'Both x64 and arm64 installers are required.' }
+          $env:CWB_DESKTOP_ARTIFACT_DIR = (Resolve-Path output/desktop).Path
+          $env:CWB_REQUIRE_ARTIFACTS = '1'
+          pnpm exec node tests/desktop-windows-architecture.js
+          pnpm exec node tests/desktop-packaged-smoke.js
+          pnpm exec node tests/desktop-installer-smoke.js
+          pnpm exec node scripts/check-release-signing.js output/desktop
+          @($x64, $arm64) | ForEach-Object { (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash + ' *' + $_.Name } | Set-Content output/desktop/Windows-SHA256.txt -Encoding utf8
+      - name: Upload verified Windows packages to draft release
+        shell: bash
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            output/desktop/counselor-desk-*-x64.exe \
+            output/desktop/counselor-desk-*-arm64.exe \
+            output/desktop/Windows-SHA256.txt \
+            --clobber
+
+  macos:
+    name: macOS Universal (DMG and ZIP)
+    needs: [validate, windows]
+    runs-on: macos-14
+    timeout-minutes: 40
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+      CWB_LICENSE_MODE: commercial
+      CWB_LICENSE_SERVICE_URL: ${{ secrets.CWB_LICENSE_SERVICE_URL }}
+      CWB_LICENSE_PUBLIC_KEYS_JSON: ${{ secrets.CWB_LICENSE_PUBLIC_KEYS_JSON }}
+      CWB_UPDATE_FEED_URL: ${{ secrets.CWB_UPDATE_FEED_URL }}
+      CWB_UPDATE_MANIFEST_URL: ${{ secrets.CWB_UPDATE_MANIFEST_URL }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Require commercial public configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CWB_LICENSE_SERVICE_URL" && test -n "$CWB_LICENSE_PUBLIC_KEYS_JSON" && test -n "$CWB_UPDATE_FEED_URL" && test -n "$CWB_UPDATE_MANIFEST_URL"
+      - name: Require macOS signing and notarization credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CSC_LINK" && test -n "$CSC_KEY_PASSWORD"
+          test -n "$APPLE_ID" && test -n "$APPLE_APP_SPECIFIC_PASSWORD" && test -n "$APPLE_TEAM_ID"
+      - name: Build universal desktop package
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_log="mac-build.log"
+          for attempt in 1 2; do
+            rm -rf output/desktop
+            if pnpm run desktop:build:mac 2>&1 | tee "$build_log"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ]; then
+              exit 1
+            fi
+            while read -r disk; do
+              [ -n "$disk" ] && hdiutil detach "$disk" -force || true
+            done < <(grep -oE 'disk[0-9]+' "$build_log" | sort -u)
+            sleep 5
+          done
+      - name: Verify universal artifacts and smoke paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$(find output/desktop -maxdepth 1 -name 'counselor-desk-*-mac-universal.dmg' -print -quit)"
+          zip="$(find output/desktop -maxdepth 1 -name 'counselor-desk-*-mac-universal.zip' -print -quit)"
+          test -n "$dmg" && test -n "$zip"
+          unzip -q "$zip" -d mac-app
+          app="$(find mac-app -maxdepth 2 -name '*.app' -print -quit)"
+          test -n "$app"
+          binary="$(find "$app/Contents/MacOS" -type f -print -quit)"
+          test -n "$binary"
+          lipo -archs "$binary" | grep -q x86_64
+          lipo -archs "$binary" | grep -q arm64
+          chmod +x "$binary"
+          CWB_DESKTOP_EXECUTABLE="$binary" CWB_REQUIRE_ARTIFACTS=1 pnpm exec node tests/desktop-packaged-smoke.js
+          hdiutil attach "$dmg" -nobrowse -mountpoint mounted-dmg
+          mounted_app="$(find mounted-dmg -maxdepth 2 -name '*.app' -print -quit)"
+          test -n "$mounted_app"
+          mounted_binary="$(find "$mounted_app/Contents/MacOS" -type f -perm -111 -print -quit)"
+          test -n "$mounted_binary"
+          CWB_DESKTOP_EXECUTABLE="$mounted_binary" CWB_REQUIRE_ARTIFACTS=1 pnpm exec node tests/desktop-packaged-smoke.js
+          codesign --verify --deep --strict --verbose=2 "$mounted_app"
+          xcrun stapler validate "$dmg"
+          hdiutil detach mounted-dmg
+          shasum -a 256 "$dmg" "$zip" > output/desktop/macOS-SHA256.txt
+      - name: Upload verified macOS packages to draft release
+        shell: bash
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            output/desktop/*-mac-universal.dmg \
+            output/desktop/*-mac-universal.zip \
+            output/desktop/macOS-SHA256.txt \
+            --clobber
+
+  web:
+    name: Offline web package
+    needs: [validate, macos]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CWB_LICENSE_MODE: commercial
+      CWB_LICENSE_SERVICE_URL: ${{ secrets.CWB_LICENSE_SERVICE_URL }}
+      CWB_LICENSE_PUBLIC_KEYS_JSON: ${{ secrets.CWB_LICENSE_PUBLIC_KEYS_JSON }}
+      CWB_UPDATE_FEED_URL: ${{ secrets.CWB_UPDATE_FEED_URL }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Require commercial public configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CWB_LICENSE_SERVICE_URL" && test -n "$CWB_LICENSE_PUBLIC_KEYS_JSON" && test -n "$CWB_UPDATE_FEED_URL"
+      - run: pnpm run build:release
+      - name: Rename and hash offline web package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv "output/一站式辅导员工作台-v${{ needs.validate.outputs.version }}.html" "output/CounselorDesk-v${{ needs.validate.outputs.version }}-Offline.html"
+          sha256sum "output/CounselorDesk-v${{ needs.validate.outputs.version }}-Offline.html" > output/Web-SHA256.txt
+      - name: Upload verified web package to draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            "output/CounselorDesk-v${{ needs.validate.outputs.version }}-Offline.html" \
+            output/Web-SHA256.txt \
+            --clobber
+
+  release:
+    name: Draft Release
+    needs: [validate, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Verify all direct-uploaded release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ needs.validate.outputs.tag }}'
+          version='${{ needs.validate.outputs.version }}'
+          assets="$(gh release view "$tag" --json isDraft,isPrerelease,assets --jq '. as $release | select($release.isDraft == true and $release.isPrerelease == false) | .assets[].name')"
+          test -n "$assets"
+          for required in \
+            "CounselorDesk-v$version-Offline.html" \
+            "Web-SHA256.txt" \
+            "Windows-SHA256.txt" \
+            "macOS-SHA256.txt"; do
+            printf '%s\n' "$assets" | grep -Fx "$required"
+          done
+          printf '%s\n' "$assets" | grep -Eq '^counselor-desk-.*-x64\.exe$'
+          printf '%s\n' "$assets" | grep -Eq '^counselor-desk-.*-arm64\.exe$'
+          printf '%s\n' "$assets" | grep -Eq '^counselor-desk-.*-mac-universal\.dmg$'
+          printf '%s\n' "$assets" | grep -Eq '^counselor-desk-.*-mac-universal\.zip$'
+      - name: Publish validated release
+        shell: bash
+        run: gh release edit '${{ needs.validate.outputs.tag }}' --draft=false --prerelease=false

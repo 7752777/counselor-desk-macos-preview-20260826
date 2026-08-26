@@ -1,0 +1,52 @@
+# 依赖（仅测试用，非运行依赖）
+node_modules/
+
+# 临时测试 / 构建产物
+*.log
+.DS_Store
+Thumbs.db
+.cache/
+dist/
+build/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+
+# 切勿提交含真实学生数据的导出备份
+*.backup.json
+*.json.bak
+*.export.json
+*.export.csv
+backups/
+
+# WorkBuddy 助手记忆目录（不该进仓库）
+.workbuddy/
+out/
+artifacts/
+
+# v4 生成包、截图、临时报告和本地保险库（不进入源码仓库）
+output/
+tmp/
+.v4-generated-archive/
+.v4-generated-archive-final/
+*.cwbk
+desktop/license-config.generated.cjs
+*.asar
+*.nsis.7z
+*.exe
+*.blockmap
+*.dmg
+*.AppImage
+test-results/
+playwright-report/
+screenshots/
+.tmp-electron-cards-root-*/
+
+# 旧版 QA / 文档渲染工作区
+.playwright-cli/
+_docx_qa/
+_lo_profile_user_guide/
+_build_user_guide.py
+_render_user_guide.py

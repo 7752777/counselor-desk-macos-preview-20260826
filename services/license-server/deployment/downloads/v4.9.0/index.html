@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>学工智伴 v4.9.0 · 体验与下载</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif; color: #172236; background: #f3f6fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    header { padding: 26px clamp(20px, 5vw, 72px) 22px; background: #fff; border-bottom: 1px solid #dfe6f0; }
+    header strong { font-size: 19px; }
+    header p { margin: 8px 0 0; color: #5e6b80; line-height: 1.65; }
+    main { width: min(920px, calc(100% - 32px)); margin: 28px auto 56px; }
+    section { background: #fff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(32, 55, 91, .06); padding: 26px; }
+    h1 { margin: 0 0 8px; font-size: 25px; line-height: 1.35; }
+    h2 { margin: 28px 0 12px; font-size: 17px; }
+    p, li { color: #5e6b80; line-height: 1.7; }
+    .notice { margin: 18px 0; padding: 13px 15px; border-left: 3px solid #2563eb; background: #f5f8ff; color: #4b5a71; line-height: 1.65; }
+    .downloads { display: grid; gap: 10px; }
+    .download { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid #dbe3ef; border-radius: 7px; }
+    .download strong { display: block; color: #24324a; }
+    .download span { display: block; margin-top: 3px; color: #7a8699; font-size: 12px; }
+    a { color: #1d4ed8; text-decoration: none; font-weight: 650; white-space: nowrap; }
+    a:hover { text-decoration: underline; }
+    code { padding: 2px 5px; border-radius: 4px; background: #f1f5f9; color: #334155; }
+    @media (max-width: 620px) { section { padding: 20px; } .download { align-items: flex-start; flex-direction: column; gap: 8px; } }
+  </style>
+</head>
+<body>
+  <header><strong>学工智伴 v4.9.0</strong><p>前瞻体验计划体验包、前瞻版授权体验、Windows 安装包和产品手册下载中心。</p></header>
+  <main>
+    <section>
+      <h1>开始体验</h1>
+      <p>第一次使用请先打开网页端体验包，使用内置样例数据浏览功能。不要把真实学生资料上传到公开页面，也不要把许可证、模型 API Key 或业务备份发到群里。</p>
+      <div class="notice"><strong>说明：</strong>未激活时可以体验基础业务流程；AI 入口会显示为锁定状态。需要体验授权链路时，再打开“前瞻版授权体验”，输入维护者私下提供的前瞻兑换码。</div>
+      <h2>网页端</h2>
+      <div class="downloads">
+        <div class="download"><div><strong>前瞻版体验版</strong><span>样例数据与基础业务流程，浏览器直接打开</span></div><a href="./学工智伴-v4.9.0-前瞻版体验版.html" download>下载网页端</a></div>
+        <div class="download"><div><strong>前瞻版授权体验</strong><span>连接授权服务，体验激活、AI 锁定和友情托管入口</span></div><a href="./学工智伴-v4.9.0-前瞻版授权体验.html" download>下载授权体验版</a></div>
+      </div>
+      <h2>Windows 桌面端</h2>
+      <div class="downloads">
+        <div class="download"><div><strong>Windows x64 安装程序</strong><span>适用于大多数 Intel/AMD 电脑</span></div><a href="./学工智伴-v4.9.0-安装程序-x64.exe" download>下载 x64</a></div>
+        <div class="download"><div><strong>Windows arm64 安装程序</strong><span>适用于 Windows ARM 设备</span></div><a href="./学工智伴-v4.9.0-安装程序-arm64.exe" download>下载 arm64</a></div>
+        <div class="download"><div><strong>前瞻版交付包 ZIP</strong><span>网页端、安装包、手册、脱敏导入样表和校验文件</span></div><a href="./学工智伴-v4.9.0-前瞻版交付包-20260825-4.zip" download>下载完整包</a></div>
+      </div>
+      <h2>产品手册</h2>
+      <div class="downloads">
+        <div class="download"><div><strong>学工智伴 v4.9.0 产品手册</strong><span>面向用户的功能总览与操作路径</span></div><a href="./学工智伴-v4.9.0-产品手册.pdf" download>下载 PDF</a></div>
+        <div class="download"><div><strong>功能与使用说明书</strong><span>单栏排版的完整功能说明、截图和数据边界</span></div><a href="./学工智伴-v4.9.0-功能与使用说明书.pdf" download>下载 PDF</a></div>
+      </div>
+      <h2>购买与激活</h2>
+      <p>购买正式许可证请进入 <a href="https://license.windsky.store/customer">购买与交付页面</a>。付款确认并签发许可证后，在工作台的“商业授权”窗口导入许可证文件。普通版不解锁 AI；AI 档位还需要配置你自己的模型服务和 API Key。</p>
+      <p>技术交流、前瞻体验资格核验和问题反馈：微信 <code>Windsky0823</code>。建议反馈被采纳后，经核验可获得永久 AI 增强版支持。</p>
+    </section>
+  </main>
+</body>
+</html>

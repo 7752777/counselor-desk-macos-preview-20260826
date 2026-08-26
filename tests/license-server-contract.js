@@ -1,0 +1,44 @@
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const { createSigner, createMemoryStore, createLicenseService } = require('../services/license-server/service.cjs');
+
+(async () => {
+  const { privateKey } = crypto.generateKeyPairSync('ed25519');
+  const signer = createSigner({ privateKey, kid:'contract-kid' });
+  const store = createMemoryStore();
+  const service = createLicenseService({ signer, store, adminToken:'admin-contract' });
+  const issued = service.issue({ plan:'ai', major_version:4, device_limit:2 });
+  assert.match(issued.token, /^CWB-LIC-1\./);
+  const parsed = require('../src/core/cwb-license.js').parse(issued.token);
+  assert.equal(parsed.plan, 'ai');
+  store.activate({ license_id:issued.license_id, token:issued.token, workspace_id:'w1', device_id:'d1' });
+  store.activate({ license_id:issued.license_id, token:issued.token, workspace_id:'w1', device_id:'d2' });
+  assert.throws(() => store.activate({ license_id:issued.license_id, token:issued.token, workspace_id:'w1', device_id:'d3' }), error => error.code === 'LICENSE_DEVICE_LIMIT');
+  assert.throws(() => store.activate({ license_id:issued.license_id, token:issued.token, workspace_id:'w2', device_id:'d4' }), error => error.code === 'LICENSE_WORKSPACE_MISMATCH');
+  store.deactivate({ license_id:issued.license_id, device_id:'d2' });
+  assert.equal(store.listDevices(issued.license_id).length, 1);
+  store.revoke(issued.license_id, 'contract test');
+  assert.equal(store.get(issued.license_id).status, 'revoked');
+  assert.ok(store.audits.some(item => item.action === 'license_issued'));
+
+  const routeStore = createMemoryStore();
+  const routeService = createLicenseService({ signer, store:routeStore, adminToken:'admin-contract' });
+  const routeIssued = routeService.issue({ plan:'ai', device_limit:2 });
+  const started = await routeService.start({ host:'127.0.0.1', port:0 });
+  const base = `http://127.0.0.1:${started.address.port}`;
+  const post = (path, body, headers) => fetch(`${base}${path}`, { method:'POST', headers:Object.assign({ 'content-type':'application/json' }, headers || {}), body:JSON.stringify(body || {}) });
+  let response = await post('/api/v1/licenses/activate', { token:routeIssued.token, workspace_id:'w-route', device_id:'d-route' });
+  assert.equal(response.status, 200);
+  response = await post('/api/v1/licenses/refresh', { license_id:routeIssued.license_id, workspace_id:'w-route', device_id:'d-route' });
+  assert.equal(response.status, 401, 'refresh must require a license token');
+  response = await post('/api/v1/licenses/refresh', { token:routeIssued.token, license_id:routeIssued.license_id, workspace_id:'w-route', device_id:'d-route' });
+  assert.equal(response.status, 200, 'active devices may refresh their license');
+  response = await fetch(`${base}/api/v1/licenses/${routeIssued.license_id}/devices?workspace_id=w-route&device_id=d-route`);
+  assert.equal(response.status, 401, 'device listing must require a license token');
+  response = await fetch(`${base}/api/v1/licenses/${routeIssued.license_id}/devices?workspace_id=w-route&device_id=d-route`, { headers:{ authorization:`Bearer ${routeIssued.token}` } });
+  assert.equal(response.status, 200);
+  response = await post('/api/v1/licenses/deactivate', { token:routeIssued.token, license_id:routeIssued.license_id, workspace_id:'w-route', device_id:'d-route' });
+  assert.equal(response.status, 200);
+  await new Promise(resolve => started.server.close(resolve));
+  console.log('PASS license-server-contract');
+})().catch(error => { console.error(error.stack || error.message); process.exit(1); });

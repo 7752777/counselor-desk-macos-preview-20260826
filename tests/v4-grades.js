@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');const{JSDOM,VirtualConsole}=require('jsdom');const XLSX=require('xlsx');const path=require('node:path');const{pathToFileURL}=require('node:url');const wait=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>{if(!/scrollTo|Not implemented|Could not load|getaddrinfo/i.test(e.message))errors.push(e.message)});vc.on('error',(...a)=>errors.push(a.join(' ')));const source=path.join(__dirname,'..','index.html');const dom=await JSDOM.fromFile(source,{runScripts:'dangerously',resources:'usable',url:pathToFileURL(source).href,virtualConsole:vc,pretendToBeVisual:true});await wait(700);const w=dom.window;const initialGradeCount=w.CWB.db.grades.length;const p=w.CWB.importer.previewCSV('姓名,学号,班级,学年学期,科目,成绩,是否挂科,平均学分绩点\n测试学生,9901,一班,2025-2026-1,高数,55,是,1.2\n测试学生,9901,一班,2025-2026-1,英语,50,是,1.2\n测试学生,9901,一班,2025-2026-1,物理,58,是,1.2','grades');assert.equal(p.summary.ready,3);const result=w.CWB.importer.commitPreview(p.id,{skipInvalid:true,conflictPolicy:'skip',confirmSensitive:true});assert.equal(result.ok,true);assert.equal(w.CWB.db.grades.length,initialGradeCount+3);assert.equal(w.CWB.db.help.some(x=>x.student_number==='9901'&&x.type==='学业困难重点帮扶'),true);assert.equal(w.CWB.v4.rules.academicRisk({class_name:'一班',failedCount:3},{'一班':{failedCourseThreshold:3}}).triggered,true);
+  const sheet=XLSX.utils.aoa_to_sheet([['原始及最高成绩GPA统计'],[],['上课院系','年级','专业','班级','学号','姓名','原始成绩平均学分绩点','原始成绩课程绩点','最高成绩平均学分绩点','最高成绩课程绩点','奖学金平均学分绩点','奖学金课程绩点'],['低空科学与工程学院',2024,'机器人工程','24机器人01','202400800291','贾君彦',94.601,4.46,94.60,4.46,0,0]]);const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,sheet,'原始及最高成绩GPA统计');const file=new w.File([XLSX.write(book,{type:'array',bookType:'xlsx'})],'机器人前三学期成绩.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const gpa = await w.CWB.importer.previewFile(file, 'grades', { encoding:'auto' });
+  assert.equal(gpa.summary.ready, 1, 'GPA 汇总表应作为一条可导入的成绩汇总记录');
+  assert.equal(gpa.rows[0].value.student_number, '202400800291');
+  assert.equal(gpa.rows[0].value.course, '学业成绩汇总');
+  assert.equal(gpa.rows[0].value.score, 94.601);
+  assert.equal(gpa.rows[0].value.gpa, 4.46);
+  assert.equal(gpa.source.headerRow, 3, '标题行和空行前的 Excel 应定位到真实表头');
+  assert.match(gpa.rows[0].value.summary, /最高成绩平均学分绩点：94\.6/);
+  const malformedGpa = w.CWB.importer.previewCSV('班级,学号,姓名,原始成绩平均学分绩点,原始成绩课程绩点,最高成绩平均学分绩点,最高成绩课程绩点\n24机器人02,202400800283,张琬靖,我现在,3.816,88.16,3.82', 'grades');
+  assert.equal(malformedGpa.summary.ready, 1, 'GPA 汇总表中单个非数值单元格不应阻断该学生的汇总记录');
+  assert.equal(malformedGpa.rows[0].value.score, '');
+  assert.match(malformedGpa.rows[0].value.summary, /原始成绩平均学分绩点：我现在/);
+  assert.deepEqual(errors,[]);dom.window.close();console.log('PASS v4-grades')})().catch(e=>{console.error(e.stack||e.message);process.exit(1)});

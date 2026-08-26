@@ -1,0 +1,45 @@
+# Legacy compatibility configuration. Formal builds use ../electron-builder.yml.
+# Keep this file version-neutral so it cannot become a second release contract.
+appId: cn.counselordesk.desktop
+productName: Counselor Desk
+electronVersion: 31.7.7
+directories:
+  output: ../output/desktop
+files:
+  - desktop/main.cjs
+  - desktop/preload.cjs
+  - desktop/database.cjs
+  - desktop/package.json
+  - index.html
+  - vendor/**
+asar: true
+extraResources:
+  - from: desktop/node_modules
+    to: native/node_modules
+    filter:
+      - better-sqlite3/**
+      - bindings/**
+      - file-uri-to-path/**
+npmRebuild: false
+win:
+  signAndEditExecutable: false
+  target:
+    - nsis
+  artifactName: CounselorDesk-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
+  include: desktop/installer.nsh
+  runAfterFinish: false
+mac:
+  identity: null
+  target:
+    - dmg
+    - zip
+  category: public.app-category.education
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  artifactName: CounselorDesk-${version}-${arch}.${ext}

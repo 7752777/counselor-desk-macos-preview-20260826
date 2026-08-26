@@ -1,0 +1,48 @@
+name: Lint index.html
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    name: HTML / JS syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 11.9.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate inline JavaScript
+        run: pnpm run lint
+
+      - name: Validate public release surface
+        run: pnpm run check:public
+
+      - name: Scan tracked source for exposed credentials
+        run: pnpm run check:secrets
+
+      - name: Size check
+        run: |
+          SIZE=$(stat -c%s index.html)
+          echo "index.html size: $SIZE bytes"
+          if [ $SIZE -gt 1000000 ]; then
+            echo "⚠️ index.html > 1MB"
+          fi

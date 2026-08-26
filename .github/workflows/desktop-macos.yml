@@ -94,7 +94,7 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
       - name: Publish build diagnostics
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           BUILD_LOG_PATH: ${{ runner.temp }}/desktop-build.log
         with:

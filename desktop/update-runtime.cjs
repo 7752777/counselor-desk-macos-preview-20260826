@@ -139,10 +139,13 @@ function createElectronUpdateRuntime(options) {
     if (manifestPackage && actual.toLowerCase() !== String(manifestPackage.sha256 || '').toLowerCase()) {
       throw codedError('UPDATE_HASH_MISMATCH', '下载包 SHA-256 与签名清单不一致');
     }
-    if (typeof opts.verifyDownloadedPackage === 'function') {
+    const unsignedPreview = opts.allowUnsignedPreview === true
+      && state.manifest && state.manifest.channel === 'preview'
+      && manifestPackage && manifestPackage.signature === 'unsigned-preview-v1';
+    if (typeof opts.verifyDownloadedPackage === 'function' && !unsignedPreview) {
       const verified = await opts.verifyDownloadedPackage(filePath, { info:info || null, manifest:state.manifest, package:manifestPackage });
       if (verified !== true) throw codedError('UPDATE_PLATFORM_SIGNATURE_INVALID', '更新包平台签名校验失败');
-    } else if (opts.requirePlatformSignature === true) {
+    } else if (opts.requirePlatformSignature === true && !unsignedPreview) {
       throw codedError('UPDATE_PLATFORM_SIGNATURE_UNVERIFIED', '商业更新缺少平台签名校验器');
     }
     return { path:filePath, sha256:actual };

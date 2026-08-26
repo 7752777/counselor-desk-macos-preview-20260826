@@ -31,6 +31,7 @@ jobs:
       CWB_LICENSE_PUBLIC_KEYS_JSON: '{"staging-primary":"MCowBQYDK2VwAyEAOwjMneN6DZpWg79Wu+v3LIKfzCUFZnO8CLYSgeJWUwQ="}'
       CWB_UPDATE_FEED_URL: https://license.windsky.store/downloads/preview/
       CWB_UPDATE_MANIFEST_URL: https://license.windsky.store/api/v1/updates/latest?channel=preview
+      CWB_ALLOW_UNSIGNED_PREVIEW: 'true'
       CWB_PURCHASE_URL: https://license.windsky.store/customer
       CWB_DOWNLOAD_CENTER_URL: https://license.windsky.store/downloads/v4.9.1/
       CWB_AI_MANAGED_RELAY_URL: https://license.windsky.store/api/ai/chat

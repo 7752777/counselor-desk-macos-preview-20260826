@@ -364,6 +364,7 @@ async function createWindow() {
     requireManifestSignature:licenseMode() === 'commercial',
     requirePackageHash:licenseMode() === 'commercial',
     requirePlatformSignature:licenseMode() === 'commercial',
+    allowUnsignedPreview:desktopConfig.allowUnsignedPreview === true,
     requireRecoveryPoint:licenseMode() === 'commercial',
     platform:process.platform,
     arch:process.arch,

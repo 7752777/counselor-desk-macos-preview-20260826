@@ -27,6 +27,7 @@ const config = {
   paymentReady:hasGenerated ? generated.payment_ready === true : envBool(env.CWB_PAYMENT_READY),
   updateFeedUrl:text(hasGenerated && generated.update_feed_url || env.CWB_UPDATE_FEED_URL || ''),
   updateManifestUrl:text(hasGenerated && generated.update_manifest_url || env.CWB_UPDATE_MANIFEST_URL || ''),
+  allowUnsignedPreview:hasGenerated ? generated.allow_unsigned_preview === true : envBool(env.CWB_ALLOW_UNSIGNED_PREVIEW),
   purchaseUrl:text(hasGenerated && generated.purchase_url || env.CWB_PURCHASE_URL || ''),
   downloadCenterUrl:text(hasGenerated && generated.download_center_url || env.CWB_DOWNLOAD_CENTER_URL || ''),
   managedRelayUrl:text(hasGenerated && generated.managed_relay_url || env.CWB_AI_MANAGED_RELAY_URL || ''),

@@ -40,6 +40,7 @@ function prepare(environment, target) {
     public_keys:publicKeys,
     update_feed_url:mode === 'commercial' ? requireHttps(text(env.CWB_UPDATE_FEED_URL), 'CWB_UPDATE_FEED_URL') : text(env.CWB_UPDATE_FEED_URL),
     update_manifest_url:mode === 'commercial' ? requireHttps(text(env.CWB_UPDATE_MANIFEST_URL), 'CWB_UPDATE_MANIFEST_URL') : text(env.CWB_UPDATE_MANIFEST_URL),
+    allow_unsigned_preview:mode === 'commercial' && envBool(env.CWB_ALLOW_UNSIGNED_PREVIEW),
     purchase_url:mode === 'commercial' && text(env.CWB_PURCHASE_URL) ? requireHttps(text(env.CWB_PURCHASE_URL), 'CWB_PURCHASE_URL') : text(env.CWB_PURCHASE_URL),
     download_center_url:mode === 'commercial' && text(env.CWB_DOWNLOAD_CENTER_URL) ? requireHttps(text(env.CWB_DOWNLOAD_CENTER_URL), 'CWB_DOWNLOAD_CENTER_URL') : text(env.CWB_DOWNLOAD_CENTER_URL),
     managed_relay_url:mode === 'commercial' && text(env.CWB_AI_MANAGED_RELAY_URL) ? requireHttps(text(env.CWB_AI_MANAGED_RELAY_URL), 'CWB_AI_MANAGED_RELAY_URL') : text(env.CWB_AI_MANAGED_RELAY_URL),

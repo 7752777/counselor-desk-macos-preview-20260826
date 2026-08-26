@@ -99,7 +99,7 @@
   "devDependencies": {
     "electron": "^38.0.0",
     "electron-builder": "^26.0.0",
-    "jsdom": "^26.1.0",
+    "jsdom": "^30.0.1",
     "playwright-core": "1.57.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },

@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload build log on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: counselor-desk-${{ github.sha }}-mac-build-log
           retention-days: 3
@@ -147,7 +147,7 @@ jobs:
       # requires Developer ID signing and notarization credentials.
       - name: Upload unsigned diagnostic artifacts
         continue-on-error: true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: counselor-desk-${{ github.sha }}-mac-universal
           retention-days: 7
